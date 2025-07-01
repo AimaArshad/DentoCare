@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "72025732538",
+    "project_id": "dentocare-da779",
+    "storage_bucket": "dentocare-da779.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:72025732538:android:c3257ee5bf38f5571f1983",
+        "android_client_info": {
+          "package_name": "com.example.dentocare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbu5A43Z5i2GBkcVWtPhhzz9PokDytp4Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
