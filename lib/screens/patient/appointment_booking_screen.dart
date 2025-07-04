@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AppointmentBookingScreen extends StatefulWidget {
   @override
@@ -52,19 +53,97 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     fetchDentistNames();
   }
 
+  // Remove the following code from here. If you want to fetch the user and their name, do it inside a method, e.g., in initState() or a dedicated function.
+  // Example: Move this logic into a function if you need to use the user's name later.
+
+  // Future<void> _submitForm() async {
+  //   if (_formKey.currentState!.validate() && _selectedDateTime != null) {
+  //     try {
+  //       await FirebaseFirestore.instance.collection('appointments').add({
+  //         'patientName': _nameController.text.trim(),
+  //         'email': _emailController.text.trim(),
+  //         'phone': _phoneController.text.trim(),
+  //         'service': _selectedService,
+  //         'dentist': _selectedDentist,
+  //         'dateTime': _selectedDateTime!.toIso8601String(),
+  //         'status': 'pending',
+  //         'submittedAt': FieldValue.serverTimestamp(),
+  //       });
+
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Appointment added successfully'),
+  //           backgroundColor: Colors.teal,
+  //         ),
+  //       );
+
+  //       _formKey.currentState!.reset();
+  //       setState(() {
+  //         _selectedDateTime = null;
+  //         _selectedService = null;
+  //         _selectedDentist = null;
+  //       });
+  //     } catch (e) {
+  //       print(e);
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Failed to add appointment'),
+  //           backgroundColor: Colors.redAccent,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
+
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate() && _selectedDateTime != null) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Please log in first.')));
+        return;
+      }
+
       try {
-        await FirebaseFirestore.instance.collection('appointments').add({
-          'patientName': _nameController.text.trim(),
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+        final userName = userDoc['name'];
+        final docRef =
+            FirebaseFirestore.instance
+                .collection('appointments')
+                .doc(); // Create doc with unique ID
+
+        await docRef.set({
+          'uid':
+              docRef.id, // 🔥 This adds the unique ID as a field in Firestore
+          'patientUID': user.uid,
+          'patientName': userName,
           'email': _emailController.text.trim(),
           'phone': _phoneController.text.trim(),
           'service': _selectedService,
           'dentist': _selectedDentist,
+          'dentistUID': await _getDentistUID(_selectedDentist!),
           'dateTime': _selectedDateTime!.toIso8601String(),
           'status': 'pending',
           'submittedAt': FieldValue.serverTimestamp(),
         });
+        // await FirebaseFirestore.instance.collection('appointments').add({
+        //   // 'uid': uid,
+        //   'patientUID': user.uid,
+        //   'patientName': userName,
+        //   'email': _emailController.text.trim(),
+        //   'phone': _phoneController.text.trim(),
+        //   'service': _selectedService,
+        //   'dentist': _selectedDentist,
+        //   'dentistUID': await _getDentistUID(_selectedDentist!),
+        //   'dateTime': _selectedDateTime!.toIso8601String(),
+        //   'status': 'pending',
+        //   'submittedAt': FieldValue.serverTimestamp(),
+        // });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -88,6 +167,27 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           ),
         );
       }
+    } else if (_selectedDateTime == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please pick a date and time.')));
+    }
+  }
+
+  Future<String> _getDentistUID(String dentistName) async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('dentists')
+            .where('name', isEqualTo: dentistName)
+            .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      return snapshot
+          .docs
+          .first
+          .id; // Return the UID of the first matching dentist
+    } else {
+      throw Exception('Dentist not found');
     }
   }
 
